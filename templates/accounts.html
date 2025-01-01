@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة الحسابات - نظام إدارة الصيانة</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .user-card {
+            transition: all 0.3s ease;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        .user-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .user-header {
+            padding: 15px;
+            background: linear-gradient(45deg, #007bff, #0056b3);
+            color: white;
+        }
+        .user-body {
+            padding: 20px;
+        }
+        .password-toggle {
+            cursor: pointer;
+        }
+        .badge-admin {
+            background-color: #dc3545;
+        }
+        .badge-user {
+            background-color: #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <!-- رأس الصفحة -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>
+                <i class="fas fa-users-cog me-2"></i>
+                إدارة الحسابات
+            </h2>
+            <a href="/settings" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-right me-2"></i>
+                رجوع للإعدادات
+            </a>
+        </div>
+
+        <div class="row">
+            <!-- قائمة المستخدمين -->
+            <div class="col-md-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-users me-2"></i>
+                            المستخدمين
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row" id="usersList">
+                            <!-- سيتم ملء هذا القسم بالجافاسكريبت -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة تغيير كلمة المرور -->
+    <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="changePasswordModalLabel">
+                        <i class="fas fa-key me-2"></i>
+                        تغيير كلمة المرور
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="changePasswordForm" onsubmit="return handleChangePassword(event)">
+                        <input type="hidden" id="selectedUsername">
+                        <div class="mb-3">
+                            <label for="newPassword" class="form-label">كلمة المرور الجديدة</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="newPassword" required 
+                                       minlength="6" placeholder="أدخل كلمة المرور الجديدة">
+                                <span class="input-group-text password-toggle" onclick="togglePassword('newPassword')">
+                                    <i class="fas fa-eye"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirmPassword" class="form-label">تأكيد كلمة المرور</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="confirmPassword" required 
+                                       minlength="6" placeholder="أكد كلمة المرور">
+                                <span class="input-group-text password-toggle" onclick="togglePassword('confirmPassword')">
+                                    <i class="fas fa-eye"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                            <button type="submit" class="btn btn-primary">حفظ التغييرات</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let changePasswordModal;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUsers();
+            changePasswordModal = new bootstrap.Modal(document.getElementById('changePasswordModal'));
+        });
+
+        function loadUsers() {
+            fetch('/api/users')
+                .then(response => response.json())
+                .then(users => {
+                    const usersList = document.getElementById('usersList');
+                    usersList.innerHTML = '';
+                    
+                    users.forEach(user => {
+                        const col = document.createElement('div');
+                        col.className = 'col-md-4 mb-4';
+                        
+                        const card = document.createElement('div');
+                        card.className = 'user-card shadow-sm';
+                        card.innerHTML = `
+                            <div class="user-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">
+                                        <i class="fas fa-user me-2"></i>
+                                        ${user.username}
+                                    </h5>
+                                    <span class="badge ${user.role === 'admin' ? 'badge-admin' : 'badge-user'}">
+                                        ${user.role === 'admin' ? 'مدير' : 'مستخدم'}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="user-body">
+                                <button onclick="openChangePasswordModal('${user.username}')" class="btn btn-outline-primary w-100">
+                                    <i class="fas fa-key me-2"></i>
+                                    تغيير كلمة المرور
+                                </button>
+                            </div>
+                        `;
+                        col.appendChild(card);
+                        usersList.appendChild(col);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading users:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ!',
+                        text: 'حدث خطأ أثناء تحميل المستخدمين',
+                        confirmButtonText: 'حسناً'
+                    });
+                });
+        }
+
+        function openChangePasswordModal(username) {
+            document.getElementById('selectedUsername').value = username;
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+            document.getElementById('changePasswordModalLabel').innerHTML = `
+                <i class="fas fa-key me-2"></i>
+                تغيير كلمة المرور - ${username}
+            `;
+            changePasswordModal.show();
+        }
+
+        function handleChangePassword(event) {
+            event.preventDefault();
+            const username = document.getElementById('selectedUsername').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (newPassword !== confirmPassword) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ!',
+                    text: 'كلمات المرور غير متطابقة',
+                    confirmButtonText: 'حسناً'
+                });
+                return false;
+            }
+
+            if (newPassword.length < 6) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ!',
+                    text: 'يجب أن تكون كلمة المرور 6 أحرف على الأقل',
+                    confirmButtonText: 'حسناً'
+                });
+                return false;
+            }
+
+            fetch('/api/user/reset-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    username: username,
+                    new_password: newPassword
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    changePasswordModal.hide();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'تم بنجاح!',
+                        text: 'تم تغيير كلمة المرور بنجاح',
+                        confirmButtonText: 'حسناً'
+                    });
+                } else {
+                    throw new Error(data.message || 'حدث خطأ أثناء تغيير كلمة المرور');
+                }
+            })
+            .catch(error => {
+                console.error('Error changing password:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ!',
+                    text: error.message || 'حدث خطأ أثناء تغيير كلمة المرور',
+                    confirmButtonText: 'حسناً'
+                });
+            });
+
+            return false;
+        }
+
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            const icon = input.nextElementSibling.querySelector('i');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+    </script>
+</body>
+</html>

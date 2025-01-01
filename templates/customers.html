@@ -1,0 +1,103 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h5>إضافة عميل جديد</h5>
+    </div>
+    <div class="card-body">
+        <form id="customerForm">
+            <div class="mb-3">
+                <label class="form-label">اسم العميل</label>
+                <input type="text" class="form-control" name="name" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">رقم الهاتف</label>
+                <input type="tel" class="form-control" name="phone" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">جهة العمل (اختياري)</label>
+                <input type="text" class="form-control" name="workplace" placeholder="أدخل جهة العمل">
+            </div>
+            <button type="submit" class="btn btn-primary">إضافة عميل</button>
+        </form>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header">
+        <h5>قائمة العملاء</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>رقم العميل</th>
+                        <th>اسم العميل</th>
+                        <th>رقم الهاتف</th>
+                        <th>جهة العمل</th>
+                        <th>عدد الطلبات</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="customersTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function loadCustomers() {
+        const response = await fetch('/api/customers');
+        const customers = await response.json();
+        const tbody = document.getElementById('customersTableBody');
+        tbody.innerHTML = '';
+        customers.forEach(customer => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${customer.id}</td>
+                    <td>${customer.name}</td>
+                    <td>${customer.phone}</td>
+                    <td>${customer.workplace || '-'}</td>
+                    <td>${customer.repairs_count || 0}</td>
+                    <td>
+                        <button class="btn btn-sm btn-danger" onclick="deleteCustomer(${customer.id})">حذف</button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    document.getElementById('customerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = {
+            name: formData.get('name'),
+            phone: formData.get('phone'),
+            workplace: formData.get('workplace') || null
+        };
+        
+        await fetch('/api/customers', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+        
+        e.target.reset();
+        loadCustomers();
+    });
+
+    async function deleteCustomer(customerId) {
+        if (confirm('هل أنت متأكد من حذف هذا العميل؟')) {
+            await fetch(`/api/customers/${customerId}`, {
+                method: 'DELETE'
+            });
+            loadCustomers();
+        }
+    }
+
+    loadCustomers();
+</script>
+{% endblock %}

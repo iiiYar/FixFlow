@@ -1,0 +1,282 @@
+{% extends "layout.html" %}
+{% block head %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">📋 سجل الإشعارات</h5>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-primary" onclick="filterNotifications('all')">الكل</button>
+                        <button class="btn btn-outline-primary" onclick="filterNotifications('success')">ناجحة</button>
+                        <button class="btn btn-outline-primary" onclick="filterNotifications('failed')">فاشلة</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- إحصائيات الإشعارات -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="stats-card bg-primary bg-opacity-10 p-3 rounded">
+                                <h6 class="text-primary">إجمالي الإشعارات</h6>
+                                <h3 id="totalNotifications">0</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stats-card bg-success bg-opacity-10 p-3 rounded">
+                                <h6 class="text-success">إشعارات ناجحة</h6>
+                                <h3 id="successfulNotifications">0</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stats-card bg-danger bg-opacity-10 p-3 rounded">
+                                <h6 class="text-danger">إشعارات فاشلة</h6>
+                                <h3 id="failedNotifications">0</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stats-card bg-info bg-opacity-10 p-3 rounded">
+                                <h6 class="text-info">معدل النجاح</h6>
+                                <h3 id="successRate">0%</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- رسم بياني للإشعارات -->
+                    <div class="row mb-4">
+                        <div class="col-md-8">
+                            <div class="chart-container">
+                                <canvas id="notificationsChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="chart-container">
+                                <canvas id="notificationTypesChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- جدول الإشعارات -->
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>التاريخ</th>
+                                    <th>النوع</th>
+                                    <th>العنوان</th>
+                                    <th>الوصف</th>
+                                    <th>الحالة</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in logs.items %}
+                                <tr>
+                                    <td>{{ log.timestamp }}</td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ log.type }}</span>
+                                    </td>
+                                    <td>{{ log.title }}</td>
+                                    <td>{{ log.description }}</td>
+                                    <td>
+                                        {% if log.status == 'نجاح' %}
+                                            <span class="badge bg-success">{{ log.status }}</span>
+                                        {% elif log.status == 'فشل' %}
+                                            <span class="badge bg-danger">{{ log.status }}</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">{{ log.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- الترقيم الصفحي -->
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            {% if logs.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('notifications_log', page=logs.prev_num) }}">السابق</a>
+                            </li>
+                            {% endif %}
+                            
+                            {% for page_num in logs.iter_pages() %}
+                                {% if page_num %}
+                                    <li class="page-item {% if page_num == logs.page %}active{% endif %}">
+                                        <a class="page-link" href="{{ url_for('notifications_log', page=page_num) }}">{{ page_num }}</a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if logs.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('notifications_log', page=logs.next_num) }}">التالي</a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // التأكد من تحميل Chart.js
+    if (typeof Chart !== 'undefined') {
+        updateNotificationStats();
+        initCharts();
+    } else {
+        console.error('Chart.js is not loaded');
+    }
+});
+
+function updateNotificationStats() {
+    fetch('/api/notifications/stats')
+        .then(response => response.json())
+        .then(data => {
+            const total = data.total || 0;
+            
+            document.getElementById('totalNotifications').textContent = total;
+            
+            const successful = data.by_status['نجاح'] || 0;
+            const failed = data.by_status['فشل'] || 0;
+            
+            document.getElementById('successfulNotifications').textContent = successful;
+            document.getElementById('failedNotifications').textContent = failed;
+            
+            const successRate = total > 0 ? Math.round((successful / total) * 100) : 0;
+            document.getElementById('successRate').textContent = `${successRate}%`;
+            
+            updateCharts(data);
+        })
+        .catch(error => {
+            console.error('Error fetching notification stats:', error);
+        });
+}
+
+function initCharts() {
+    // التأكد من وجود العناصر قبل إنشاء الرسوم البيانية
+    const ctx1 = document.getElementById('notificationsChart');
+    const ctx2 = document.getElementById('notificationTypesChart');
+
+    if (ctx1 && ctx2) {
+        window.notificationsChart = new Chart(ctx1.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'عدد الإشعارات',
+                    data: [],
+                    borderColor: '#0ea5e9',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+
+        window.typesChart = new Chart(ctx2.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: [],
+                datasets: [{
+                    data: [],
+                    backgroundColor: [
+                        '#0ea5e9',
+                        '#22c55e',
+                        '#f59e0b',
+                        '#ef4444'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+    } else {
+        console.error('Chart canvas elements not found');
+    }
+}
+
+function updateCharts(data) {
+    if (window.notificationsChart && window.typesChart) {
+        // تحديث الرسم البياني اليومي
+        const dates = Object.keys(data.daily || {});
+        const counts = Object.values(data.daily || {});
+        
+        window.notificationsChart.data.labels = dates;
+        window.notificationsChart.data.datasets[0].data = counts;
+        window.notificationsChart.update();
+
+        // تحديث رسم بياني أنواع الإشعارات
+        const types = Object.keys(data.by_type || {});
+        const typeCounts = Object.values(data.by_type || {});
+        
+        window.typesChart.data.labels = types;
+        window.typesChart.data.datasets[0].data = typeCounts;
+        window.typesChart.update();
+    }
+}
+
+function filterNotifications(filter) {
+    const rows = document.querySelectorAll('table tbody tr');
+    rows.forEach(row => {
+        const statusCell = row.querySelector('td:last-child .badge');
+        const status = statusCell.textContent.trim();
+        
+        switch(filter) {
+            case 'all':
+                row.style.display = '';
+                break;
+            case 'success':
+                row.style.display = status === 'نجاح' ? '' : 'none';
+                break;
+            case 'failed':
+                row.style.display = status === 'فشل' ? '' : 'none';
+                break;
+        }
+    });
+}
+
+// إزالة أي محاولات للوصول إلى عناصر غير موجودة
+function updateThemeIcon() {
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+        themeToggle.classList.toggle('active');
+    }
+}
+</script>
+
+<style>
+.stats-card {
+    border-radius: 10px;
+    transition: transform 0.2s;
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+}
+
+.chart-container {
+    height: 300px;
+    margin-bottom: 1rem;
+}
+
+.badge {
+    font-size: 0.85em;
+    padding: 0.5em 0.8em;
+}
+</style>
+{% endblock %}

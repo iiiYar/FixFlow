@@ -1,0 +1,66 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>تفاصيل طلب الصيانة</h2>
+    <div class="card">
+        <div class="card-body">
+            <form id="editRepairForm">
+                <div class="mb-3">
+                    <label for="device_type" class="form-label">نوع الجهاز</label>
+                    <input type="text" class="form-control" id="device_type" value="{{ repair.device_type }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="problem" class="form-label">المشكلة</label>
+                    <textarea class="form-control" id="problem" rows="3" required>{{ repair.problem }}</textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="cost" class="form-label">التكلفة</label>
+                    <input type="number" class="form-control" id="cost" value="{{ repair.cost }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="status" class="form-label">الحالة</label>
+                    <input type="text" class="form-control" value="{{ repair.status }}" readonly>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">العميل</label>
+                    <input type="text" class="form-control" value="{{ repair.customer.name }}" readonly>
+                </div>
+                <button type="submit" class="btn btn-primary">حفظ التعديلات</button>
+                <a href="/repairs" class="btn btn-secondary">رجوع</a>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('editRepairForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const data = {
+        device_type: document.getElementById('device_type').value,
+        problem: document.getElementById('problem').value,
+        cost: parseFloat(document.getElementById('cost').value)
+    };
+    
+    try {
+        const response = await fetch('/api/repairs/{{ repair.id }}', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        alert(result.message);
+        
+        if (response.ok) {
+            window.location.href = '/repairs';
+        }
+    } catch (error) {
+        alert('حدث خطأ أثناء تحديث طلب الصيانة');
+    }
+});
+</script>
+{% endblock %}

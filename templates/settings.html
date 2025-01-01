@@ -1,0 +1,385 @@
+<script>
+function saveNotificationSettings() {
+    const webhookUrl = document.getElementById('discordWebhook').value;
+    const enabled = document.getElementById('enableNotifications').checked;
+    const notifyNewCustomers = document.getElementById('notifyNewCustomers').checked;
+    const notifyStatusChanges = document.getElementById('notifyStatusChanges').checked;
+    
+    fetch('/settings/notifications', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            webhook_url: webhookUrl,
+            enabled: enabled,
+            notify_new_customers: notifyNewCustomers,
+            notify_status_changes: notifyStatusChanges
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', 'تم حفظ إعدادات الإشعارات بنجاح');
+        } else {
+            showAlert('error', 'حدث خطأ أثناء حفظ الإعدادات');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('error', 'حدث خطأ في الاتصال بالخادم');
+    });
+}
+
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    document.querySelector('.card-body').insertBefore(alertDiv, document.querySelector('.settings-section'));
+    
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 3000);
+}
+</script>{% extends "layout.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">الإعدادات</h5>
+                </div>
+                <div class="card-body">
+                    <div class="settings-section">
+                        <h6 class="settings-title mb-3">
+                            <i class="fas fa-database me-2"></i>
+                            النسخ الاحتياطي واستعادة البيانات
+                        </h6>
+                        <div class="row g-3">
+                            <!-- تصدير البيانات -->
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h6 class="card-title">
+                                            <i class="fas fa-download me-2"></i>
+                                            تصدير البيانات
+                                        </h6>
+                                        <p class="card-text text-muted small mb-3">
+                                            تصدير نسخة كاملة من قاعدة البيانات تشمل العملاء وطلبات الصيانة وجميع السجلات
+                                        </p>
+                                        <button class="btn btn-primary" onclick="exportDatabase()">
+                                            <i class="fas fa-file-export me-2"></i>
+                                            تصدير البيانات
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- استيراد البيانات -->
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h6 class="card-title">
+                                            <i class="fas fa-upload me-2"></i>
+                                            استيراد البيانات
+                                        </h6>
+                                        <p class="card-text text-muted small mb-3">
+                                            استيراد نسخة من قاعدة البيانات. سيتم استبدال البيانات الحالية بالبيانات المستوردة
+                                        </p>
+                                        <div class="mb-3">
+                                            <input type="file" class="form-control" id="importFile" accept=".json">
+                                        </div>
+                                        <button class="btn btn-warning" onclick="importDatabase()">
+                                            <i class="fas fa-file-import me-2"></i>
+                                            استيراد البيانات
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-section mt-4">
+                        <h6 class="settings-title mb-3">
+                            <i class="fas fa-users-cog me-2"></i>
+                            إدارة الحسابات
+                        </h6>
+                        <div class="mb-3">
+                            <p class="text-muted">إدارة حسابات المستخدمين وصلاحياتهم في النظام</p>
+                            <a href="/accounts" class="btn btn-primary">
+                                <i class="fas fa-users me-2"></i>
+                                إدارة الحسابات
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="settings-section mt-4">
+                        <h6 class="settings-title mb-3">
+                            <i class="fas fa-bell me-2"></i>
+                            إعدادات الإشعارات
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h6 class="card-title">
+                                            <i class="fas fa-link me-2"></i>
+                                            رابط الويب هوك
+                                        </h6>
+                                        <p class="card-text text-muted small mb-3">
+                                            رابط الويب هوك لاستقبال الإشعارات
+                                        </p>
+                                        <div class="mb-3">
+                                            <input type="text" class="form-control" id="discordWebhook" placeholder="رابط الويب هوك">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-body">
+                                        <h6 class="card-title">
+                                            <i class="fas fa-bell me-2"></i>
+                                            تفعيل الإشعارات
+                                        </h6>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="enableNotifications">
+                                            <label class="form-check-label" for="enableNotifications">تفعيل إشعارات Discord</label>
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="notifyNewCustomers">
+                                            <label class="form-check-label" for="notifyNewCustomers">إشعار عند إضافة عميل جديد</label>
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="notifyStatusChanges">
+                                            <label class="form-check-label" for="notifyStatusChanges">إشعار عند تغيير حالة الطلب</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" onclick="saveNotificationSettings()">
+                                <i class="fas fa-save me-2"></i>
+                                حفظ الإعدادات
+                            </button>
+                    </div>
+
+                    <!-- قسم سجل الإشعارات -->
+                    <div class="settings-section mt-4">
+                        <h6 class="settings-title mb-3">
+                            <i class="fas fa-history me-2"></i>
+                            سجل الإشعارات
+                        </h6>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <p class="text-muted">عرض سجل كامل للإشعارات المرسلة وحالتها</p>
+                                        <a href="/notifications/log" class="btn btn-info">
+                                            <i class="fas fa-list me-2"></i>
+                                            عرض سجل الإشعارات
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-end">
+                        <button class="btn btn-primary" type="button">حفظ التغييرات</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.settings-section {
+    padding: 1.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--background-secondary);
+}
+
+.settings-title {
+    color: var(--text-primary);
+    font-weight: 600;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.form-control {
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+}
+
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(26, 115, 232, 0.1);
+}
+</style>
+
+<script>
+function exportDatabase() {
+    // عرض رسالة تأكيد
+    if (confirm('هل أنت متأكد من تصدير جميع البيانات؟')) {
+        // تحميل البيانات
+        fetch('/api/database/export')
+            .then(response => response.blob())
+            .then(blob => {
+                // إنشاء رابط تحميل
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const date = new Date().toISOString().split('T')[0];
+                a.href = url;
+                a.download = `backup_${date}.json`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('حدث خطأ أثناء تصدير البيانات');
+            });
+    }
+}
+
+function importDatabase() {
+    const fileInput = document.getElementById('importFile');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        alert('الرجاء اختيار ملف للاستيراد');
+        return;
+    }
+
+    // عرض رسالة تأكيد
+    if (confirm('سيتم استبدال جميع البيانات الحالية بالبيانات من الملف المختار. هل أنت متأكد من المتابعة؟')) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        fetch('/api/database/import', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('تم استيراد البيانات بنجاح');
+                location.reload();
+            } else {
+                alert('حدث خطأ أثناء استيراد البيانات');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('حدث خطأ أثناء استيراد البيانات');
+        });
+    }
+}
+
+function saveNotificationSettings() {
+    const webhookUrl = document.getElementById('discordWebhook').value;
+    const enabled = document.getElementById('enableNotifications').checked;
+    const notifyNewCustomers = document.getElementById('notifyNewCustomers').checked;
+    const notifyStatusChanges = document.getElementById('notifyStatusChanges').checked;
+    
+    fetch('/settings/notifications', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            webhook_url: webhookUrl,
+            enabled: enabled,
+            notify_new_customers: notifyNewCustomers,
+            notify_status_changes: notifyStatusChanges
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', 'تم حفظ إعدادات الإشعارات بنجاح');
+        } else {
+            showAlert('error', 'حدث خطأ أثناء حفظ الإعدادات');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('error', 'حدث خطأ في الاتصال بالخادم');
+    });
+}
+
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    document.querySelector('.card-body').insertBefore(alertDiv, document.querySelector('.settings-section'));
+    
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 3000);
+}
+</script>
+
+<script>
+    // تحميل الإعدادات عند تحميل الصفحة
+    document.addEventListener('DOMContentLoaded', function() {
+        fetch('/settings/notifications')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('discordWebhook').value = data.webhook_url;
+                document.getElementById('enableNotifications').checked = data.enabled;
+                document.getElementById('notifyNewCustomers').checked = data.notify_new_customers;
+                document.getElementById('notifyStatusChanges').checked = data.notify_status_changes;
+            })
+            .catch(error => {
+                console.error('خطأ في تحميل الإعدادات:', error);
+            });
+    });
+    
+    function saveNotificationSettings() {
+        const webhook_url = document.getElementById('discordWebhook').value;
+        const enabled = document.getElementById('enableNotifications').checked;
+        const notifyNewCustomers = document.getElementById('notifyNewCustomers').checked;
+        const notifyStatusChanges = document.getElementById('notifyStatusChanges').checked;
+    
+        fetch('/settings/notifications', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                webhook_url: webhook_url,
+                enabled: enabled,
+                notify_new_customers: notifyNewCustomers,
+                notify_status_changes: notifyStatusChanges
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            showAlert('success', 'تم حفظ الإعدادات بنجاح');
+        })
+        .catch(error => {
+            console.error('خطأ:', error);
+            showAlert('error', 'حدث خطأ أثناء حفظ الإعدادات');
+        });
+    }
+    
+    function showAlert(type, message) {
+        // ... (الكود الحالي)
+    }
+    </script>
+{% endblock %}

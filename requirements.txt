@@ -1,0 +1,12 @@
+PyQt6==6.6.1
+Flask==2.0.1
+Flask-SQLAlchemy==2.5.1
+Flask-Migrate==3.1.0
+SQLAlchemy==1.4.23
+Werkzeug==2.0.1
+pyOpenSSL==20.0.1  # لدعم HTTPS
+cryptography==3.4.7  # للتشفير
+python-dotenv==0.19.0  # لإدارة متغيرات البيئة
+gunicorn==20.1.0  # خادم WSGI للإنتاج
+requests==2.31.0  # لإجراء طلبات HTTP
+pymysql==1.1.0

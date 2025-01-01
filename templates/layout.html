@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة الصيانة</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            /* الوضع النهاري */
+            --primary-gradient: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            --secondary-gradient: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            --success-gradient: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            --warning-gradient: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
+            
+            --primary-color: #4f46e5;
+            --secondary-color: #0ea5e9;
+            --success-color: #22c55e;
+            --warning-color: #eab308;
+            
+            --background-color: #f8fafc;
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --text-color: #1e293b;
+            --text-muted: #64748b;
+            --border-color: rgba(226, 232, 240, 0.8);
+            --hover-bg: rgba(241, 245, 249, 0.8);
+            
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="dark"] {
+            /* الوضع الليلي */
+            --primary-gradient: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+            --secondary-gradient: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
+            --success-gradient: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            --warning-gradient: linear-gradient(135deg, #fbbf24 0%, #eab308 100%);
+            
+            --primary-color: #818cf8;
+            --secondary-color: #38bdf8;
+            --success-color: #4ade80;
+            --warning-color: #fbbf24;
+            
+            --background-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.9);
+            --text-color: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border-color: rgba(51, 65, 85, 0.8);
+            --hover-bg: rgba(51, 65, 85, 0.5);
+            
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            transition: all 0.3s ease;
+        }
+
+        .navbar {
+            background: var(--card-bg) !important;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow-md);
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary-color) !important;
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar-brand i {
+            font-size: 1.25rem;
+        }
+
+        .nav-link {
+            color: var(--text-color) !important;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-link:hover {
+            color: var(--primary-color) !important;
+            background: var(--hover-bg);
+        }
+
+        .nav-link.active {
+            color: var(--primary-color) !important;
+            background: var(--hover-bg);
+        }
+
+        .nav-link i {
+            font-size: 1.1rem;
+        }
+
+        .theme-switch {
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .theme-switch:hover {
+            background: var(--hover-bg);
+            transform: rotate(15deg);
+        }
+
+        .theme-switch i {
+            font-size: 1.25rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-md);
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: none;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .stat-card::before {
+            background: var(--primary-gradient);
+        }
+
+        .stat-card:nth-child(2)::before {
+            background: var(--secondary-gradient);
+        }
+
+        .stat-card:nth-child(3)::before {
+            background: var(--success-gradient);
+        }
+
+        .stat-card:nth-child(4)::before {
+            background: var(--warning-gradient);
+        }
+
+        .stat-icon {
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .card-title {
+            color: var(--text-muted);
+        }
+
+        .table {
+            color: var(--text-color);
+        }
+
+        .table thead th {
+            background: var(--card-bg);
+            border-color: var(--border-color);
+            color: var(--text-muted);
+        }
+
+        .table td {
+            border-color: var(--border-color);
+        }
+
+        .form-control {
+            background: var(--card-bg);
+            border-color: var(--border-color);
+            color: var(--text-color);
+        }
+
+        .form-control:focus {
+            background: var(--card-bg);
+            border-color: var(--primary-color);
+            color: var(--text-color);
+            box-shadow: 0 0 0 0.2rem rgba(var(--primary-color), 0.25);
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            border: none;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-color);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .card-details {
+            color: var(--text-color);
+        }
+
+        .card-details li {
+            background: var(--hover-bg);
+            border: 1px solid var(--border-color);
+        }
+
+        .card-details li:hover {
+            background: var(--hover-bg);
+            border-color: var(--primary-color);
+        }
+
+        /* تحسينات إضافية للتفاعل */
+        .btn, .nav-link, .form-control, .card {
+            transition: all 0.3s ease;
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        /* تأثيرات حركية للبطاقات */
+        .stat-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        /* تحسين قراءة النصوص */
+        h1, h2, h3, h4, h5, h6 {
+            color: var(--text-color);
+        }
+
+        .text-muted {
+            color: var(--text-muted) !important;
+        }
+
+        @media (max-width: 991.98px) {
+            .navbar-collapse {
+                background: var(--card-bg);
+                padding: 1rem;
+                border-radius: 0.5rem;
+                margin-top: 1rem;
+                box-shadow: var(--shadow-md);
+            }
+            
+            .nav-link {
+                padding: 0.75rem 1rem;
+            }
+            
+            .theme-switch {
+                margin-top: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-tools ms-2"></i>
+                نظام الصيانة
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">
+                            <i class="fas fa-chart-line ms-1"></i>
+                            لوحة التحكم
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/customers">
+                            <i class="fas fa-users ms-1"></i>
+                            العملاء
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/repairs">
+                            <i class="fas fa-wrench ms-1"></i>
+                            الصيانة
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/settings">
+                            <i class="fas fa-cog ms-1"></i>
+                            الإعدادات
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <button class="btn" id="theme-toggle" onclick="toggleTheme()">
+                            <i class="fas fa-sun"></i>
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-danger" href="/logout" onclick="return confirm('هل أنت متأكد من تسجيل الخروج؟')">
+                            <i class="fas fa-sign-out-alt ms-1"></i>
+                            تسجيل الخروج
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // التحقق من الوضع المحفوظ
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', currentTheme);
+        updateThemeIcon(currentTheme);
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            const icon = document.querySelector('.theme-switch i');
+            if (theme === 'dark') {
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+            } else {
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+            }
+        }
+    </script>
+</body>
+</html>

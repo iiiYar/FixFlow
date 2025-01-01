@@ -1,0 +1,38 @@
+# بيئات التطوير
+venv/
+env/
+.env
+__pycache__/
+*.pyc
+
+# ملفات النظام
+.DS_Store
+Thumbs.db
+
+# قواعد البيانات
+*.sqlite
+*.db
+
+# ملفات Docker
+.docker
+
+# ملفات IDE
+.vscode/
+.idea/
+
+# سجلات
+*.log
+
+# مجلدات بناء المشروع
+build/
+dist/
+*.egg-info/
+
+# ملفات حساسة
+config.json
+.env
+*.pem
+
+# مجلدات تابعة للمشروع
+database/
+fixflowuser:fixflowpassword@db/

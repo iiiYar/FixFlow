@@ -1,0 +1,1211 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="dashboard-container">
+    <!-- إحصائيات سريعة -->
+    <div class="row mb-4 stats-row">
+        <div class="col-md-3">
+            <div class="stat-card expandable" onclick="toggleCard(this)">
+                <div class="card-body">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-content">
+                        <h6 class="card-title">إجمالي العملاء</h6>
+                        <h2 id="totalCustomers">0</h2>
+                    </div>
+                    <div class="card-details">
+                        <p>تفاصيل العملاء</p>
+                        <ul>
+                            <li>عملاء جدد اليوم <span id="newCustomersToday">0</span></li>
+                            <li>عملاء جدد هذا الشهر <span id="newCustomersMonth">0</span></li>
+                            <li>العملاء النشطون <span id="activeCustomers">0</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card expandable" onclick="toggleCard(this)">
+                <div class="card-body">
+                    <div class="stat-icon">🔧</div>
+                    <div class="stat-content">
+                        <h6 class="card-title">الصيانة النشطة</h6>
+                        <h2 id="activeRepairs">0</h2>
+                    </div>
+                    <div class="card-details">
+                        <p>تفاصيل الصيانة النشطة</p>
+                        <ul>
+                            <li>قيد التنفيذ <span id="inProgressRepairs">0</span></li>
+                            <li>في الانتظار <span id="pendingRepairs">0</span></li>
+                            <li>مكتملة اليوم <span id="completedToday">0</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card expandable" onclick="toggleCard(this)">
+                <div class="card-body">
+                    <div class="stat-icon">📅</div>
+                    <div class="stat-content">
+                        <h6 class="card-title">صيانة اليوم</h6>
+                        <h2 id="todayRepairs">0</h2>
+                    </div>
+                    <div class="card-details">
+                        <p>تفاصيل صيانة اليوم</p>
+                        <ul>
+                            <li>طلبات جديدة <span id="newRepairsToday">0</span></li>
+                            <li>مكتملة <span id="completedRepairsToday">0</span></li>
+                            <li>نسبة الإنجاز <span id="completionRate">0%</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card expandable" onclick="toggleCard(this)">
+                <div class="card-body">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-content">
+                        <h6 class="card-title">إجمالي الإيرادات</h6>
+                        <h2 id="totalRevenue">0 ر.س</h2>
+                    </div>
+                    <div class="card-details">
+                        <p>تفاصيل الإيرادات</p>
+                        <table class="table table-sm">
+                            <tbody>
+                                <tr>
+                                    <td>إيرادات اليوم</td>
+                                    <td class="text-start" id="todayRevenue">0 ر.س</td>
+                                </tr>
+                                <tr>
+                                    <td>إيرادات الشهر</td>
+                                    <td class="text-start" id="monthRevenue">0 ر.س</td>
+                                </tr>
+                                <tr>
+                                    <td>متوسط تكلفة الصيانة</td>
+                                    <td class="text-start" id="avgRepairCost">0 ر.س</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- الرسوم البيانية -->
+    <div class="row mb-4 charts-row">
+        <div class="col-md-6">
+            <div class="chart-container card">
+                <div class="card-body">
+                    <div class="chart-header d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">📊 تحليل الإيرادات</h5>
+                        <div class="btn-group period-selector">
+                            <button class="btn btn-sm btn-outline-primary active" onclick="updateRevenueChart('daily')">يومي</button>
+                            <button class="btn btn-sm btn-outline-primary" onclick="updateRevenueChart('weekly')">أسبوعي</button>
+                            <button class="btn btn-sm btn-outline-primary" onclick="updateRevenueChart('monthly')">شهري</button>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper" style="height: 300px;">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                    <div class="chart-footer text-muted mt-2 text-center">
+                        <small>آخر تحديث: <span id="lastUpdate">الآن</span></small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h5>🔧 آخر الطلبات</h5>
+                    <div class="repairs-toolbar">
+                        <div class="status-filter">
+                            <select class="form-select" id="statusFilter" onchange="filterRepairs()">
+                                <option value="all">جميع الحالات</option>
+                                <option value="قيد الانتظار">قيد الانتظار</option>
+                                <option value="جاري الصيانة">جاري الصيانة</option>
+                                <option value="تم الإصلاح">تم الإصلاح</option>
+                                <option value="تم التسليم">تم التسليم</option>
+                            </select>
+                        </div>
+                        <div class="sort-options">
+                            <button class="btn btn-outline-primary btn-sm" onclick="sortRepairs('date')">
+                                <i class="fas fa-clock"></i>
+                                التاريخ
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="sortRepairs('cost')">
+                                <i class="fas fa-dollar-sign"></i>
+                                السعر
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="recent-repairs-list">
+                    <!-- سيتم ملء هذا القسم ديناميكياً -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- حالات الصيانة -->
+    <div class="col-12">
+        <div class="maintenance-status-card">
+            <div class="status-header">
+                <div class="status-title">
+                    <i class="fas fa-tools"></i>
+                    <h5>حالات الصيانة</h5>
+                </div>
+            </div>
+            <div class="status-body">
+                <div class="row g-4" id="statusStats">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* تنسيق الحاوية الرئيسية */
+.dashboard-container {
+    padding: 2rem;
+    background: var(--background-color);
+}
+
+/* صف البطاقات الإحصائية */
+.stats-row {
+    margin: -1rem -1rem 2rem -1rem;
+}
+
+.stats-row > div {
+    padding: 1rem;
+}
+
+/* حاوية الرسوم البيانية */
+.chart-container {
+    background: var(--card-bg);
+    border-radius: 24px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-md);
+    transition: all 0.3s ease;
+    height: 100%;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    position: relative;
+    height: 500px;  /* ارتفاع ثابت للحاوية */
+    display: flex;
+    flex-direction: column;
+}
+
+.chart-header {
+    flex-shrink: 0;  /* منع تقلص الهيدر */
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 1rem;
+}
+
+.recent-repairs-list {
+    flex-grow: 1;  /* السماح للقائمة بالنمو لملء المساحة المتبقية */
+    overflow-y: auto;
+    padding-right: 0.5rem;
+    margin-right: -0.5rem;
+    padding-left: 0.5rem;
+    margin-left: -0.5rem;
+}
+
+/* تنسيق شريط التمرير */
+.recent-repairs-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.recent-repairs-list::-webkit-scrollbar-track {
+    background: var(--hover-bg);
+    border-radius: 4px;
+    margin: 4px;
+}
+
+.recent-repairs-list::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 4px;
+    border: 2px solid var(--card-bg);
+}
+
+.recent-repairs-list::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-color);
+}
+
+/* تنسيق عناصر القائمة */
+.repair-item {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.3s ease;
+}
+
+.repair-item:last-child {
+    margin-bottom: 0;  /* إزالة الهامش السفلي من آخر عنصر */
+}
+
+.repair-item:hover {
+    transform: translateX(-5px);
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-md);
+}
+
+/* تنسيقات الوضع الليلي */
+[data-theme="dark"] .recent-repairs-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .recent-repairs-list::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-color: var(--card-bg);
+}
+
+[data-theme="dark"] .repair-item {
+    background: rgba(30, 41, 59, 0.8);
+}
+
+/* تحسينات التجاوب */
+@media (max-width: 768px) {
+    .dashboard-container {
+        padding: 1rem;
+    }
+
+    .stats-row {
+        margin: -0.5rem -0.5rem 1.5rem -0.5rem;
+    }
+
+    .stats-row > div {
+        padding: 0.5rem;
+    }
+
+    .chart-container {
+        margin-bottom: 1rem;
+    }
+
+    .chart-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+
+    .period-selector {
+        display: flex;
+        justify-content: center;
+    }
+}
+
+/* تحسينات إضافية للتناسق */
+.stat-card, .chart-container {
+    border: 1px solid var(--border-color);
+}
+
+.stat-card::before, .chart-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100%;
+    background: var(--card-gradient);
+    opacity: 0.03;
+    z-index: 0;
+}
+
+/* تحسين الخطوط والمسافات */
+.dashboard-container {
+    --section-spacing: 2rem;
+    --card-spacing: 1.5rem;
+}
+
+.chart-container {
+    margin-bottom: var(--section-spacing);
+}
+
+/* تحسين التأثيرات الحركية */
+.stat-card, .chart-container {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* تحسين قابلية القراءة */
+.chart-container canvas {
+    max-height: 400px;
+}
+
+/* تناسق الظلال */
+.stat-card, .chart-container {
+    --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+                   0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    box-shadow: var(--card-shadow);
+}
+
+/* تحسين التباين */
+[data-theme="dark"] {
+    --text-contrast: 1.1;
+}
+
+.chart-header h5, .stat-card h2 {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card {
+    background: var(--card-bg);
+    border: none;
+    border-radius: 24px;
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    margin-bottom: 20px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    min-height: 140px;
+}
+
+/* بطاقة العملاء */
+.stat-card:nth-child(1) {
+    --card-gradient: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    --card-color: #818cf8;
+    --hover-color: rgba(99, 102, 241, 0.1);
+}
+
+/* بطاقة الصيانة النشطة */
+.stat-card:nth-child(2) {
+    --card-gradient: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    --card-color: #38bdf8;
+    --hover-color: rgba(14, 165, 233, 0.1);
+}
+
+/* بطاقة صيانة اليوم */
+.stat-card:nth-child(3) {
+    --card-gradient: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    --card-color: #4ade80;
+    --hover-color: rgba(34, 197, 94, 0.1);
+}
+
+/* بطاقة الإيرادات */
+.stat-card:nth-child(4) {
+    --card-gradient: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
+    --card-color: #fbbf24;
+    --hover-color: rgba(234, 179, 8, 0.1);
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100%;
+    background: var(--card-gradient);
+    clip-path: circle(60% at 95% 10%);
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0.9;
+    z-index: 0;
+}
+
+.stat-card.expanded::before {
+    clip-path: circle(150% at 50% 50%);
+}
+
+.card-body {
+    position: relative;
+    z-index: 1;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.stat-icon {
+    font-size: 2.5rem;
+    background: rgba(255, 255, 255, 0.2);
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 18px;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+    box-shadow: 
+        0 4px 15px rgba(0, 0, 0, 0.1),
+        inset 0 2px 4px rgba(255, 255, 255, 0.5);
+}
+
+.expanded .stat-icon {
+    transform: scale(1.1) rotate(5deg);
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.card-title {
+    color: var(--text-color);
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    opacity: 0.9;
+}
+
+.expanded .card-title {
+    color: #fff;
+}
+
+.stat-card h2 {
+    margin: 0;
+    font-weight: 700;
+    font-size: 2.5rem;
+    color: var(--card-color);
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.expanded h2 {
+    color: #fff;
+}
+
+.card-details {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-top: 1rem;
+    color: white;
+}
+
+.expanded .card-details {
+    max-height: 500px;
+    opacity: 1;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.card-details p {
+    margin: 0 0 1rem 0;
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+.card-details ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.card-details li {
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.card-details li:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateX(5px);
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card:hover::before {
+    clip-path: circle(70% at 95% 10%);
+}
+
+[data-theme="dark"] .stat-card {
+    --shadow-color: rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .stat-card::before {
+    opacity: 0.8;
+}
+
+[data-theme="dark"] .card-details li {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .card-details li:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+/* تحسينات إضافية للتأثيرات الحركية */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.stat-card:active {
+    transform: scale(0.98);
+}
+
+.stat-icon {
+    animation: pulse 2s infinite;
+}
+
+.stat-card:hover .stat-icon {
+    animation: none;
+    transform: scale(1.1);
+}
+
+/* تصميم بطاقة حالات الصيانة */
+.maintenance-status-card {
+    background: var(--card-bg);
+    border-radius: 24px;
+    padding: 1.5rem;
+    box-shadow: var(--card-shadow);
+    margin-bottom: 2rem;
+    border: 1px solid var(--border-color);
+}
+
+.status-header {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.status-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.status-title i {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+}
+
+.status-title h5 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+/* تصميم عناصر الحالة */
+.status-item {
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.status-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0.1;
+    transition: opacity 0.3s ease;
+}
+
+.status-item:hover::before {
+    opacity: 0.15;
+}
+
+.status-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+}
+
+.status-icon i {
+    font-size: 1.5rem;
+}
+
+.status-content {
+    flex: 1;
+}
+
+.status-content h3 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1;
+}
+
+.status-content p {
+    margin: 0.5rem 0 0;
+    font-size: 0.875rem;
+    opacity: 0.8;
+}
+
+/* ألوان الحالات */
+.status-item.completed {
+    border: 1px solid #28a74530;
+}
+
+.status-item.completed::before {
+    background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+.status-item.completed .status-icon {
+    background: #28a74515;
+    color: #28a745;
+}
+
+.status-item.delivered {
+    border: 1px solid #6c757d30;
+}
+
+.status-item.delivered::before {
+    background: linear-gradient(135deg, #6c757d, #495057);
+}
+
+.status-item.delivered .status-icon {
+    background: #6c757d15;
+    color: #6c757d;
+}
+
+.status-item.in-progress {
+    border: 1px solid #17a2b830;
+}
+
+.status-item.in-progress::before {
+    background: linear-gradient(135deg, #17a2b8, #0dcaf0);
+}
+
+.status-item.in-progress .status-icon {
+    background: #17a2b815;
+    color: #17a2b8;
+}
+
+.status-item.in-progress .status-icon i {
+    animation: spin 2s linear infinite;
+}
+
+.status-item.pending {
+    border: 1px solid #ffc10730;
+}
+
+.status-item.pending::before {
+    background: linear-gradient(135deg, #ffc107, #ffca2c);
+}
+
+.status-item.pending .status-icon {
+    background: #ffc10715;
+    color: #ffc107;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* تحسينات التجاوب */
+@media (max-width: 768px) {
+    .status-item {
+        padding: 1rem;
+    }
+    
+    .status-icon {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .status-icon i {
+        font-size: 1.25rem;
+    }
+    
+    .status-content h3 {
+        font-size: 1.5rem;
+    }
+}
+
+/* تحسينات الوضع الليلي */
+[data-theme="dark"] .status-item {
+    background: rgba(30, 41, 59, 0.8);
+}
+
+[data-theme="dark"] .status-icon {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* تصميم قائمة آخر طلبات الصيانة */
+.recent-repairs-list {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 1rem;
+    margin: 0 -1rem;
+}
+
+.recent-repairs-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.recent-repairs-list::-webkit-scrollbar-track {
+    background: var(--hover-bg);
+    border-radius: 4px;
+}
+
+.recent-repairs-list::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 4px;
+}
+
+.recent-repairs-list::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-color);
+}
+
+.repair-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    margin-bottom: 0.75rem;
+    transition: all 0.3s ease;
+}
+
+.repair-item:hover {
+    transform: translateX(-5px);
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-md);
+}
+
+.repair-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--hover-bg);
+    border-radius: 0.5rem;
+    flex-shrink: 0;
+}
+
+.repair-icon i {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+}
+
+.repair-info {
+    flex: 1;
+}
+
+.repair-info h6 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.repair-info p {
+    margin: 0.25rem 0;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+.repair-status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    flex-shrink: 0;
+}
+
+.repair-status.pending {
+    background: rgba(234, 179, 8, 0.1);
+    color: #eab308;
+}
+
+.repair-status.in-progress {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+}
+
+.repair-status.completed {
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+}
+
+.repair-status.delivered {
+    background: rgba(79, 70, 229, 0.1);
+    color: #4f46e5;
+}
+
+/* تحسينات إضافية */
+.repairs-toolbar {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.status-filter {
+    min-width: 150px;
+}
+
+.form-select {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    font-size: 0.875rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 0.5rem;
+}
+
+.sort-options {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.sort-options .btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.sort-options .btn i {
+    font-size: 0.875rem;
+}
+
+.sort-options .btn.active {
+    background: var(--primary-color);
+    color: white;
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // تحديث البيانات الإحصائية
+    function updateDashboardStats() {
+        fetch('/api/dashboard/stats')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('totalCustomers').textContent = data.total_customers;
+                document.getElementById('activeRepairs').textContent = data.active_repairs;
+                document.getElementById('todayRepairs').textContent = data.today_repairs;
+                document.getElementById('totalRevenue').textContent = data.total_revenue.toLocaleString() + ' ريال';
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+    // تحديث إحصائيات حالات الصيانة
+    function updateRepairStats() {
+        fetch('/api/dashboard/repair-stats')
+            .then(response => response.json())
+            .then(data => {
+                const statusContainer = document.getElementById('statusStats');
+                statusContainer.innerHTML = '';
+
+                const statuses = {
+                    'تم الإصلاح': { icon: 'check-circle', class: 'completed' },
+                    'تم التسليم': { icon: 'box-check', class: 'delivered' },
+                    'جاري الصيانة': { icon: 'cog', class: 'in-progress' },
+                    'قيد الانتظار': { icon: 'clock', class: 'pending' }
+                };
+
+                for (const [status, count] of Object.entries(data)) {
+                    const col = document.createElement('div');
+                    col.className = 'col-md-3';
+                    col.innerHTML = `
+                        <div class="status-item ${statuses[status].class}">
+                            <div class="status-icon">
+                                <i class="fas fa-${statuses[status].icon}"></i>
+                            </div>
+                            <div class="status-content">
+                                <h3>${count}</h3>
+                                <p>${status}</p>
+                            </div>
+                        </div>
+                    `;
+                    statusContainer.appendChild(col);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+    // تهيئة رسم الإيرادات
+    const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+    let revenueChart = new Chart(revenueCtx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'الإيرادات',
+                data: [],
+                borderColor: '#4CAF50',
+                backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return value.toLocaleString() + ' ريال';
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+
+    // دالة تحديث رسم الإيرادات
+    window.updateRevenueChart = function(period) {
+        // إزالة الفئة النشطة من جميع الأزرار
+        document.querySelectorAll('.period-selector .btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        // إضافة الفئة النشطة للزر المحدد
+        event.target.classList.add('active');
+
+        // جلب البيانات من الخادم
+        fetch(`/api/dashboard/revenue?period=${period}`)
+            .then(response => response.json())
+            .then(data => {
+                revenueChart.data.labels = data.labels;
+                revenueChart.data.datasets[0].data = data.data;
+                revenueChart.update();
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+    // تحديث البيانات عند تحميل الصفحة
+    updateDashboardStats();
+    updateRepairStats();
+    updateRevenueChart('daily');
+
+    // تحديث البيانات كل دقيقة
+    setInterval(() => {
+        updateDashboardStats();
+        updateRepairStats();
+    }, 60000);
+});
+</script>
+
+<script>
+function toggleCard(card) {
+    // Remove expanded class from all other cards
+    document.querySelectorAll('.stat-card').forEach(otherCard => {
+        if (otherCard !== card) {
+            otherCard.classList.remove('expanded');
+        }
+    });
+    
+    // Toggle expanded class on clicked card
+    card.classList.toggle('expanded');
+}
+
+// Close expanded card when clicking outside
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('.stat-card')) {
+        document.querySelectorAll('.stat-card').forEach(card => {
+            card.classList.remove('expanded');
+        });
+    }
+});
+</script>
+
+<script>
+async function loadDetailedStats() {
+    try {
+        // تحميل تفاصيل العملاء
+        const customerDetails = await fetch('/api/stats/customers/details').then(res => res.json());
+        document.getElementById('newCustomersToday').textContent = customerDetails.new_today;
+        document.getElementById('newCustomersMonth').textContent = customerDetails.new_this_month;
+        document.getElementById('activeCustomers').textContent = customerDetails.active_customers;
+
+        // تحميل تفاصيل الصيانة
+        const repairDetails = await fetch('/api/stats/repairs/details').then(res => res.json());
+        document.getElementById('inProgressRepairs').textContent = repairDetails.in_progress;
+        document.getElementById('pendingRepairs').textContent = repairDetails.pending;
+        document.getElementById('completedToday').textContent = repairDetails.completed_today;
+        document.getElementById('newRepairsToday').textContent = repairDetails.new_today;
+        document.getElementById('completedRepairsToday').textContent = repairDetails.completed_today;
+        
+        // حساب نسبة الإنجاز
+        const completionRate = repairDetails.new_today > 0 
+            ? Math.round((repairDetails.completed_today / repairDetails.new_today) * 100)
+            : 0;
+        document.getElementById('completionRate').textContent = `${completionRate}%`;
+
+        // تحميل تفاصيل الإيرادات
+        const revenueDetails = await fetch('/api/stats/revenue/details').then(res => res.json());
+        document.getElementById('todayRevenue').textContent = `${revenueDetails.today_revenue} ر.س`;
+        document.getElementById('monthRevenue').textContent = `${revenueDetails.month_revenue} ر.س`;
+        document.getElementById('avgRepairCost').textContent = `${revenueDetails.avg_repair_cost} ر.س`;
+    } catch (error) {
+        console.error('Error loading detailed stats:', error);
+    }
+}
+
+// تحميل التفاصيل عند تحميل الصفحة وكل دقيقة
+loadDetailedStats();
+setInterval(loadDetailedStats, 60000);
+</script>
+
+<script>
+// المتغيرات العامة لتخزين الطلبات وحالة الترتيب
+let repairsList = [];
+let currentSortField = 'date';
+let currentSortDirection = 'desc';
+
+// تحديث آخر طلبات الصيانة
+function updateRecentRepairs() {
+    fetch('/api/dashboard/recent-repairs')
+        .then(response => response.json())
+        .then(repairs => {
+            repairsList = repairs;
+            renderRepairs();
+        })
+        .catch(error => console.error('Error:', error));
+}
+
+// عرض الطلبات بعد التصفية والترتيب
+function renderRepairs() {
+    const container = document.querySelector('.recent-repairs-list');
+    const statusFilter = document.getElementById('statusFilter').value;
+    container.innerHTML = '';
+
+    // تطبيق التصفية والترتيب
+    let filteredRepairs = repairsList.filter(repair => 
+        statusFilter === 'all' || repair.status === statusFilter
+    );
+
+    // ترتيب الطلبات
+    filteredRepairs.sort((a, b) => {
+        let comparison = 0;
+        if (currentSortField === 'date') {
+            comparison = new Date(b.date) - new Date(a.date);
+        } else if (currentSortField === 'cost') {
+            comparison = b.cost - a.cost;
+        }
+        return currentSortDirection === 'desc' ? comparison : -comparison;
+    });
+
+    // عرض الطلبات
+    filteredRepairs.forEach(repair => {
+        const statusClass = {
+            'قيد الانتظار': 'pending',
+            'جاري الصيانة': 'in-progress',
+            'تم الإصلاح': 'completed',
+            'تم التسليم': 'delivered'
+        }[repair.status];
+
+        const deviceIcon = getDeviceIcon(repair.device_type);
+
+        const repairElement = document.createElement('div');
+        repairElement.className = 'repair-item';
+        repairElement.innerHTML = `
+            <div class="repair-icon">
+                <i class="fas ${deviceIcon}"></i>
+            </div>
+            <div class="repair-info">
+                <h6>${repair.customer_name}</h6>
+                <p>${repair.device_type} - ${repair.problem}</p>
+                <span class="repair-cost">${repair.cost.toFixed(2)} ر.س</span>
+            </div>
+            <span class="repair-status ${statusClass}">${repair.status}</span>
+        `;
+        container.appendChild(repairElement);
+    });
+}
+
+// تصفية الطلبات
+function filterRepairs() {
+    renderRepairs();
+}
+
+// ترتيب الطلبات
+function sortRepairs(field) {
+    if (field === currentSortField) {
+        currentSortDirection = currentSortDirection === 'desc' ? 'asc' : 'desc';
+    } else {
+        currentSortField = field;
+        currentSortDirection = 'desc';
+    }
+
+    // تحديث حالة الأزرار
+    document.querySelectorAll('.sort-options .btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('onclick').includes(field)) {
+            btn.classList.add('active');
+        }
+    });
+
+    renderRepairs();
+}
+
+// تحديد أيقونة الجهاز المناسبة
+function getDeviceIcon(deviceType) {
+    const deviceIcons = {
+        'iPhone': 'fa-mobile-alt',
+        'iPad': 'fa-tablet-alt',
+        'MacBook': 'fa-laptop',
+        'Samsung': 'fa-mobile-alt',
+        'HP': 'fa-laptop',
+        'Dell': 'fa-laptop',
+        'Sony': 'fa-tv',
+        'AirPods': 'fa-headphones'
+    };
+
+    for (const [key, icon] of Object.entries(deviceIcons)) {
+        if (deviceType.includes(key)) {
+            return icon;
+        }
+    }
+    return 'fa-microchip'; // أيقونة افتراضية
+}
+
+// تحديث البيانات كل دقيقة
+document.addEventListener('DOMContentLoaded', function() {
+    updateRecentRepairs();
+    setInterval(updateRecentRepairs, 60000);
+});
+</script>
+{% endblock %}
